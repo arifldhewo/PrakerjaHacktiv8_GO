@@ -3,7 +3,8 @@ package main
 import "fmt"
 
 func main() {
-	var panjang int = 5
+	var panjang int = 5 // Change this variable to get a different size of pyramid
+
 	var initiate int = 1
 	result := []int{}
 
