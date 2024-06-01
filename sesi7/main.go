@@ -4,8 +4,9 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sesi6/controller"
-	"github.com/sesi6/repository"
+	"github.com/sesi7/controller"
+	"github.com/sesi7/middleware"
+	"github.com/sesi7/repository"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -20,20 +21,33 @@ func main () {
 		return
 	}
 	// Repo
+	userRepo := &repository.UserRepo{DB: db}
 	productRepo := &repository.ProductRepo{DB: db}
 
 	// CI/CD
+	userRepo.Migrate()
 	productRepo.Migrate()
 
+
 	// Controller
+	userController := &controller.UserController{Repository: userRepo}
 	productController := &controller.ProductController{Repository: productRepo}
 
-	productGroup := route.Group("/v1")
+	Group := route.Group("/v1")
 	{
-		productGroup.GET("/products", productController.GetGorm)
-		productGroup.POST("/products", productController.CreateGorm)
-		productGroup.PUT("/products/:id", productController.UpdateGorm)
-		productGroup.DELETE("products/:id", productController.DeleteGorm)
+		Group.POST("/registrations", userController.Registration)
+		Group.POST("/logins", userController.Login)
+
+		Group.Use(
+			middleware.BearerAuthorization(),
+		)
+		Group.GET("/products", productController.GetGorm)
+		Group.POST("/products", productController.CreateGorm)
+		Group.Use(
+			middleware.IsUser(db),
+		)
+		Group.PUT("/products/:id", productController.UpdateGorm)
+		Group.DELETE("products/:id", productController.DeleteGorm)
 	}
 
 	err = route.Run(":8000")

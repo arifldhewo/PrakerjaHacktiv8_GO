@@ -6,8 +6,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sesi6/model"
-	"github.com/sesi6/repository"
+	"github.com/sesi7/helper"
+	"github.com/sesi7/model"
+	"github.com/sesi7/repository"
 )
 
 type ProductController struct {
@@ -29,6 +30,33 @@ func (p *ProductController) GetGorm(ctx *gin.Context) {
 func (p *ProductController) CreateGorm(ctx *gin.Context) {
 	product := &model.Product{}
 
+	headerAuth := ctx.GetHeader("Authorization")
+
+	splitToken := helper.SplitJWT(headerAuth)
+
+	if splitToken == "Error Authorization" {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, map[string]any{
+			"message": "something went wrong",
+		})
+		return
+	}
+
+	valid, err := helper.ValidateUserJWT1(splitToken)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, map[string]any{
+			"message": "Invalid Token",
+		})
+		return
+	}
+
+	claims, err := helper.GetJWTPayload(valid)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, map[string]any{
+			"message": "Invalid Token",
+		})
+		return
+	}
+
 	if err := ctx.Bind(product); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, map[string]any{
 			"message": "something went wrong",
@@ -37,8 +65,12 @@ func (p *ProductController) CreateGorm(ctx *gin.Context) {
 		return
 	}
 
-	err := p.Repository.Create(product)
-	if err != nil {
+	uId := uint64(claims["id"].(float64))
+
+	product.UserID = uId
+
+	errProd := p.Repository.Create(product)
+	if errProd != nil {
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, map[string]any{
 			"message": "something went wrong",
 		})

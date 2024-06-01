@@ -3,7 +3,7 @@ package repository
 import (
 	"log"
 
-	"github.com/sesi6/model"
+	"github.com/sesi7/model"
 	"gorm.io/gorm"
 )
 
