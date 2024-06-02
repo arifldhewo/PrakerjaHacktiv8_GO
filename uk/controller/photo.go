@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ func (p *PhotoController) Create(ctx *gin.Context) {
 	ctx.Bind(photo)
 
 	// Validation For Photo Input
-	if errMessage, err := service.ValidateCreatePhoto(photo); err != nil {
+	if errMessage, err := service.ValidateTitleCaptionPhoto(photo); err != nil {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, errMessage)
 		return
 	}
@@ -83,4 +84,83 @@ func (p *PhotoController) Get(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, photos)
+}
+
+func (p *PhotoController) Update(ctx *gin.Context) {
+	photo := &model.Photo{}
+
+	ctx.Bind(&photo)
+
+	// Validation For Photo Input
+	if errMessage, err := service.ValidateTitleCaptionPhoto(photo); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, errMessage)
+		return
+	}
+
+	// Get id photo from param
+	idStr := ctx.Param("id")
+
+	// Convert String Id photo
+	uId, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Print(err)
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "something went wrong",
+		})
+		return
+	}
+
+	// Update Data
+	if err := p.Service.Update(uId, photo); err != nil {
+		if strings.Contains(err.Error(), "photo_url") {
+			err = errors.New("photo_url already taken")
+		}
+		ctx.AbortWithStatusJSON(http.StatusUnprocessableEntity, gin.H{
+			"error" : err.Error(),
+		})
+		return
+	}
+
+	updatedPhoto := model.Photo{}
+
+	// Get Updated Data
+	if err := p.Service.GetPhotoById(uId, &updatedPhoto); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error" : "something went wrong",
+		})
+		return
+	}
+
+	// Return the updatedPhoto
+	ctx.JSON(http.StatusCreated, gin.H{
+		"id" : updatedPhoto.ID,
+		"title": updatedPhoto.Title,
+		"caption": updatedPhoto.Caption,
+		"photo_url": updatedPhoto.PhotoUrl,
+		"user_id": updatedPhoto.UserID,
+		"updatedAt": updatedPhoto.UpdatedAt,
+	})
+}
+
+func (p *PhotoController) Delete(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error" : "something went wrong1",
+		})
+		return
+	}
+
+	if err := p.Service.Delete(idInt); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+			"error" : err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Your photo has been deleted",
+	})
 }

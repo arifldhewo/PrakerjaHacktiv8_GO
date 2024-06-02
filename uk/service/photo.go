@@ -12,7 +12,7 @@ type PhotoService struct {
 	Repository *repository.PhotoRepo
 }
 
-func ValidateCreatePhoto(input *model.Photo) (map[string]any, error) {
+func ValidateTitleCaptionPhoto(input *model.Photo) (map[string]any, error) {
 	errMessage := make(map[string]any)
 	requirement := map[string]any{
 		"title":    "required",
@@ -42,10 +42,30 @@ func (p *PhotoService) GetUserLastPhoto(userId int, photo *model.Photo) error {
 }
 
 func (p *PhotoService) GetAllPhotos(photos *[]model.Photo) error {
-
 	if err := p.Repository.DB.Preload("User", func (db *gorm.DB) *gorm.DB {
 		return db.Select("id", "username", "email")
 	}).Find(&photos).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PhotoService) GetPhotoById(id int, photo *model.Photo) error {
+	if err := p.Repository.DB.Model(&model.Photo{}).Where("id = ?", id).First(&photo).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PhotoService) Update(id int, photo *model.Photo) error {
+	if err := p.Repository.DB.Model(&model.Photo{}).Where("id = ?", id).Updates(&photo).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PhotoService) Delete(id int) error {
+	if err := p.Repository.DB.Model(&model.Photo{}).Where("id = ?", id).Delete(&id).Error; err != nil {
 		return err
 	}
 	return nil

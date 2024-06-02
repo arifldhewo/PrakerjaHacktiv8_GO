@@ -82,6 +82,9 @@ func main () {
 		photoGroup.Use(middleware.BearerAuthorization())
 		photoGroup.POST("", photoController.Create)
 		photoGroup.GET("", photoController.Get)
+		photoGroup.Use(middleware.IsUser(db))
+		photoGroup.PUT("/:id", photoController.Update)
+		photoGroup.DELETE("/:id", photoController.Delete)
 	}
 
 	if err := engine.Run(":8000"); err != nil {
