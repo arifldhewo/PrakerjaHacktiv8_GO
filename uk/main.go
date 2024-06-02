@@ -52,15 +52,19 @@ func main () {
 
 	// Repository
 	userRepo := &repository.UserRepo{DB: db}
+	photoRepo:= &repository.PhotoRepo{DB: db}
 
 	// Migrate
 	userRepo.Migrate()
+	photoRepo.Migrate()
 
 	// Service
 	userService := &service.UserService{Repository: userRepo}
+	photoService:= &service.PhotoService{Repository: photoRepo}
 
 	// Controller
 	userController := &controller.UserController{Service: userService}
+	photoController:= &controller.PhotoController{Service: photoService}
 
 	usersGroup := engine.Group("/users")
 	{
@@ -71,6 +75,13 @@ func main () {
 
 		usersGroup.PUT("/:id", userController.Update)
 		usersGroup.DELETE("/:id", userController.Delete)
+	}
+
+	photoGroup := engine.Group("/photos")
+	{
+		photoGroup.Use(middleware.BearerAuthorization())
+		photoGroup.POST("", photoController.Create)
+		photoGroup.GET("", photoController.Get)
 	}
 
 	if err := engine.Run(":8000"); err != nil {
